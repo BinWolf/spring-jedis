@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+			http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+			http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+			">
+
+	<context:annotation-config />
+	<context:component-scan base-package="com.wolf.*"/>
+	 
+	<!-- 将多个配置文件读取到容器中，交给Spring管理 -->  
+    <bean id="propertyConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">  
+        <property name="locations">  
+           <list>  
+              <value>classpath:redis.properties</value>  
+            </list>  
+        </property>  
+    </bean>
+
+	<!-- 定义jedis连接池配置 -->
+	<bean id="jedisPoolConfig" class="redis.clients.jedis.JedisPoolConfig">
+	    <property name="maxIdle" value="${redis.maxIdle}" />
+        <property name="maxTotal" value="${redis.maxTotal}" />
+        <property name="numTestsPerEvictionRun" value="${numTestsPerEvictionRun}"/>
+        <property name="timeBetweenEvictionRunsMillis" value="${timeBetweenEvictionRunsMillis}" />
+        <property name="minEvictableIdleTimeMillis" value="${minEvictableIdleTimeMillis}" />
+        <property name="softMinEvictableIdleTimeMillis" value="${softMinEvictableIdleTimeMillis}" />
+        <property name="maxWaitMillis" value="${redis.maxWaitMillis}"/>
+        <property name="testOnBorrow" value="${redis.testOnBorrow}" />
+        <property name="testWhileIdle" value="${testWhileIdle}"/>
+        <property name="testOnReturn" value="${testOnReturn}"/>
+        <property name="jmxEnabled" value="${jmxEnabled}"/>
+        <property name="jmxNamePrefix" value="${jmxNamePrefix}"/>
+        <property name="blockWhenExhausted" value="${blockWhenExhausted}"/>
+    </bean>
+
+
+    <!-- 单独使用JedisPool连接池-->
+    <bean id="jedisPool" class="redis.clients.jedis.JedisPool">
+    	<constructor-arg index="0" ref="jedisPoolConfig"/>
+    	<constructor-arg index="1" value="${redis.host1}"/>
+    	<constructor-arg index="2" value="${redis.port}"/>
+    </bean>
+
+	<!-- 使用spring的redis begin-->
+	<bean id="jedisConnFactory" class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory"
+		p:use-pool="true" 
+		p:host-name="${redis.host1}" 
+		p:port="${redis.port}"  
+		p:pool-config-ref="jedisPoolConfig"/>
+
+	<bean id="redisTemplate" class="org.springframework.data.redis.core.RedisTemplate" 
+    	p:connection-factory-ref="jedisConnFactory"/>
+	<!-- 使用spring的redis end-->
+   
+    <!-- 线程池维护线程所允许的空闲时间(keep-alive),默认为60s -->
+   <!-- <task:executor id="executor" pool-size="2-20" keep-alive="200" queue-capacity="128" />-->
+     	
+</beans>
